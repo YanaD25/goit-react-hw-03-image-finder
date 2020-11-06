@@ -1,11 +1,10 @@
 import React, { Component } from "react";
 import ImageGallery from "./ImageGallery";
-import ImageGalleryItem from "./ImageGalleryItem";
-import Loader from "./Loader";
-import Modal from "./Modal";
+import ButtonLoadMore from "./Button";
+import LoaderSpinner from "./Loader";
 import Searchbar from "./Searchbar";
-import fetchImagesWithQuery from "../services/imagesApi";
-
+import imagesApi from "../services/imagesApi";
+import "../styles.css";
 
 export default class App extends Component {
   state = {
@@ -21,7 +20,13 @@ export default class App extends Component {
   componentDidUpdate(prevProps, prevState) {
     const prevQuery = prevState.searchQuery;
     const nextQuery = this.state.searchQuery;
-
+    const { searchQuery, page } = this.state;
+    if (prevState.page !== page) {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
+    }
     if (prevQuery !== nextQuery) {
       this.fetchImages();
     }
@@ -30,18 +35,20 @@ export default class App extends Component {
   fetchImages = () => {
     const { searchQuery, page } = this.state;
 
-    this.setState({ loading: true });   
-       return fetchImagesWithQuery(searchQuery, page)
-      .then((images) => {
-        return this.setState((prevState) => ({
+    this.setState({ loading: true });
+
+    imagesApi
+      .fetchImagesWithQuery(searchQuery, page)
+      .then((images) =>
+        this.setState((prevState) => ({
           images: [...prevState.images, ...images],
           page: prevState.page + 1,
         }))
-      })
+      )
       .catch((error) => this.setState({ error }))
       .finally(() => this.setState({ loading: false }));
   };
-  
+
   handleSearchFormSubmit = (searchQuery) => {
     this.setState({
       searchQuery,
@@ -51,11 +58,14 @@ export default class App extends Component {
   };
 
   render() {
-    const { images, loading, error } = this.state;
+    const { images, loading } = this.state;
 
     return (
       <>
         <Searchbar onSubmit={this.handleSearchFormSubmit} />
+        {images.length > 0 && <ImageGallery images={images} />}
+        {loading && <LoaderSpinner />}
+        {images.length > 0 && <ButtonLoadMore loadMore={this.fetchImages} />}
       </>
     );
   }
